@@ -3,7 +3,7 @@
 </template>
 <script>
 import * as Cesium from "cesium";
-import monfichier from "../assets/geojson/tracks.geojson";
+// import monfichier from "../assets/geojson/tracks.geojson";
 
 export default {
     name: "CesiumViewer",
@@ -33,55 +33,34 @@ export default {
             shadows: false,
             terrainProvider: Cesium.createWorldTerrain(),
         });
-        const positions = monfichier.features[0].geometry.coordinates[0].map((coord) => {
-            return Cesium.Cartographic.fromDegrees(
-                coord[0],
-                coord[1]
-            );
-        });
-        const promise = Cesium.sampleTerrainMostDetailed(
-            viewer.terrainProvider,
-            positions
-        );
-        promise.then((updatedPositions) => {
-            this.polylinePositions = updatedPositions.map((position) => {
-                return Cesium.Cartesian3.fromRadians(
-                    position.longitude,
-                    position.latitude,
-                    position.height
-                );
-            });
 
-            const polyline = new Cesium.Entity({
-                polyline: {
-                    positions: this.polylinePositions,
-                    width: 3,
-                    material: Cesium.Color.RED,
-                    clampToGround: true,
-                },
-            });
-            console.log('polyline : ', polyline)
-            viewer.entities.add(polyline);
-            this.polylineEntity = polyline;
-        });
+        // viewer.camera.flyTo({
+        //     destination: Cesium.Cartesian3.fromDegrees(
+        //         monfichier.features[0].geometry.coordinates[0][0][0],
+        //         monfichier.features[0].geometry.coordinates[0][0][1],
+        //         5000.0
+        //     ),
+        // });
 
-        viewer.camera.flyTo({
-            destination: Cesium.Cartesian3.fromDegrees(
-                monfichier.features[0].geometry.coordinates[0][0][0],
-                monfichier.features[0].geometry.coordinates[0][0][1],
-                5000.0
-            ),
-            complete: () => {
-                const bluePoint = new Cesium.Entity({
-                    position: this.polylinePositions[0],
-                    point: {
-                        color: Cesium.Color.BLUE,
-                        pixelSize: 10,
-                    },
-                });
-                viewer.entities.add(bluePoint);
-                this.bluePointEntity = bluePoint;
+        viewer.dataSources.add(Cesium.GpxDataSource.load(
+            "/geojson/tm.gpx",
+            {
+                clampToGround: true,
             }
+        )).then(function (dataSource) {
+            viewer.flyTo(dataSource.entities);
+            // const activeDataSource = dataSource;
+
+            viewer.clock.onTick.addEventListener(function () {
+                // This is admittedly not ideal, however, currently, this seems necessary to me
+                // since we do not read entity IDs from GPX and they are generated at runtime.
+                // const entity = activeDataSource.entities._entities._array[0];
+                Cesium.Cartesian3.fromDegrees(-72.0, 40.0);
+                // const heading = Cesium.Math.toRadians(50.0);
+                // const pitch = Cesium.Math.toRadians(-20.0);
+                // const range = 5000.0;
+                // viewer.camera.lookAt(entity.position.getValue(clock.currentTime), new Cesium.HeadingPitchRange(heading, pitch, range));
+            });
         });
 
         this.viewer = viewer;
